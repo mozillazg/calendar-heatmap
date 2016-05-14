@@ -64,11 +64,19 @@ function calendarHeatmap() {
   function chart() {
 
     d3.select(chart.selector()).selectAll('svg.calendar-heatmap').remove(); // remove the existing chart, if it exists
+    chartData = chart.data()
+    var itemCount = chartData.length;
 
-    var dateRange = d3.time.days(yearAgo, now); // generates an array of date objects within the specified range
-    var monthRange = d3.time.months(moment(yearAgo).startOf('month').toDate(), now); // it ignores the first month if the 1st date is after the start of the month
+    var dateRange = chartData.map(function(item) {
+      return item.date
+    });
+    var monthRange = d3.time.months(chartData[0].date, chartData[itemCount-1].date); // it ignores the first month if the 1st date is after the start of the month
+    if (monthRange[0].getMonth() != chartData[0].date.getMonth()) {
+      monthRange.splice(0, 0, chartData[0].date);
+    }
     var firstDate = moment(dateRange[0]);
     var max = d3.max(chart.data(), function (d) { return d.count; }); // max data value
+    max = (max > 5) ? max : 5;
     var color_domain = d3.range(0, max + max/(colorRange.length - 1), max/(colorRange.length - 1));
 
     // color range
@@ -130,10 +138,8 @@ function calendarHeatmap() {
       if (chart.legendEnabled()) {
         var colorRange = [color(0)];
         var pre = max / 5;
-        console.log(pre);
         for (var i = 1; i < 4; i++) {
           colorRange.push(color(pre * i));
-          console.log(color(pre * i));
         }
         colorRange.push(color(max));
 
