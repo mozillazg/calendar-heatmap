@@ -1,15 +1,14 @@
-
 function calendarHeatmap() {
   // defaults
   var width = 750;
-  var height = 110;
+  var height = 180;
   var legendWidth = 150;
   var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   var selector = 'body';
   var SQUARE_LENGTH = 11;
   var SQUARE_PADDING = 2;
-  var MONTH_LABEL_PADDING = 6;
+  var MONTH_LABEL_PADDING = 18;
   var now = moment().endOf('day').toDate();
   var yearAgo = moment().startOf('day').subtract(1, 'year').toDate();
   var data = [];
@@ -70,11 +69,12 @@ function calendarHeatmap() {
     var monthRange = d3.time.months(moment(yearAgo).startOf('month').toDate(), now); // it ignores the first month if the 1st date is after the start of the month
     var firstDate = moment(dateRange[0]);
     var max = d3.max(chart.data(), function (d) { return d.count; }); // max data value
+    var color_domain = d3.range(0, max + max/(colorRange.length - 1), max/(colorRange.length - 1));
 
     // color range
     var color = d3.scale.linear()
-      .range(chart.colorRange())
-      .domain([0, max]);
+      .domain(color_domain)
+      .range(chart.colorRange());
 
     var tooltip;
     var dayRects;
@@ -87,7 +87,7 @@ function calendarHeatmap() {
         .attr('width', width)
         .attr('class', 'calendar-heatmap')
         .attr('height', height)
-        .style('padding', '36px');
+        // .style('padding', '36px');
 
       dayRects = svg.selectAll('.day-cell')
         .data(dateRange);  //  array of days for the last yr
@@ -97,10 +97,11 @@ function calendarHeatmap() {
         .attr('width', SQUARE_LENGTH)
         .attr('height', SQUARE_LENGTH)
         .attr('fill', 'gray')
+        .attr('rx', 1)
         .attr('x', function (d, i) {
           var cellDate = moment(d);
           var result = cellDate.week() - firstDate.week() + (firstDate.weeksInYear() * (cellDate.weekYear() - firstDate.weekYear()));
-          return result * (SQUARE_LENGTH + SQUARE_PADDING);
+          return result * (SQUARE_LENGTH + SQUARE_PADDING) + SQUARE_LENGTH + SQUARE_LENGTH;
         })
         .attr('y', function (d, i) { return MONTH_LABEL_PADDING + d.getDay() * (SQUARE_LENGTH + SQUARE_PADDING); });
 
@@ -117,8 +118,9 @@ function calendarHeatmap() {
             .append('div')
             .attr('class', 'day-cell-tooltip')
             .html(tooltipHTMLForDate(d))
-            .style('left', function () { return Math.floor(i / 7) * SQUARE_LENGTH; })
-            .style('top', function () { return d.getDay() * (SQUARE_LENGTH + SQUARE_PADDING) + MONTH_LABEL_PADDING * 3; });
+            .style('padding', '15px 10px')
+            .style('left', function() { return d3.event.pageX  - (MONTH_LABEL_PADDING * 5) + 'px'; })
+            .style('top', function() { return d3.event.pageY - (MONTH_LABEL_PADDING * 2) - 15 + 'px'; });
         })
         .on('mouseout', function (d, i) {
           tooltip.remove();
@@ -127,9 +129,13 @@ function calendarHeatmap() {
 
       if (chart.legendEnabled()) {
         var colorRange = [color(0)];
-        for (var i = 3; i > 0; i--) {
-          colorRange.push(color(max / i));
+        var pre = max / 5;
+        console.log(pre);
+        for (var i = 1; i < 4; i++) {
+          colorRange.push(color(pre * i));
+          console.log(color(pre * i));
         }
+        colorRange.push(color(max));
 
         var legendGroup = svg.append('g');
         legendGroup.selectAll('.calendar-heatmap-legend')
@@ -139,20 +145,21 @@ function calendarHeatmap() {
             .attr('class', 'calendar-heatmap-legend')
             .attr('width', SQUARE_LENGTH)
             .attr('height', SQUARE_LENGTH)
+            .attr('rx', 1)
             .attr('x', function (d, i) { return (width - legendWidth) + (i + 1) * 13; })
-            .attr('y', height + SQUARE_PADDING)
+            .attr('y', height - (SQUARE_LENGTH * 6) + SQUARE_PADDING)
             .attr('fill', function (d) { return d; });
 
         legendGroup.append('text')
           .attr('class', 'calendar-heatmap-legend-text')
           .attr('x', width - legendWidth - 13)
-          .attr('y', height + SQUARE_LENGTH)
+          .attr('y', height - (SQUARE_LENGTH * 6) + SQUARE_PADDING + SQUARE_LENGTH)
           .text('Less');
 
         legendGroup.append('text')
           .attr('class', 'calendar-heatmap-legend-text')
           .attr('x', (width - legendWidth + SQUARE_PADDING) + (colorRange.length + 1) * 13)
-          .attr('y', height + SQUARE_LENGTH)
+          .attr('y', height - (SQUARE_LENGTH * 6) + SQUARE_PADDING + SQUARE_LENGTH)
           .text('More');
       }
 
@@ -165,6 +172,7 @@ function calendarHeatmap() {
           .text(function (d) {
             return months[d.getMonth()];
           })
+          .attr('rx', 1)
           .attr('x', function (d, i) {
             var matchIndex = 0;
             dateRange.find(function (element, index) {
@@ -172,15 +180,19 @@ function calendarHeatmap() {
               return moment(d).isSame(element, 'month') && moment(d).isSame(element, 'year');
             });
 
-            return Math.floor(matchIndex / 7) * (SQUARE_LENGTH + SQUARE_PADDING);
+            var result = Math.floor(matchIndex / 7) * (SQUARE_LENGTH + SQUARE_PADDING) + (SQUARE_LENGTH * 2);
+            if (matchIndex !== 0) {
+              result += SQUARE_LENGTH;
+            }
+            return result
           })
-          .attr('y', 0);  // fix these to the top
+          .attr('y', SQUARE_LENGTH);  // fix these to the top
 
       days.forEach(function (day, index) {
         if (index % 2) {
           svg.append('text')
             .attr('class', 'day-initial')
-            .attr('transform', 'translate(-8,' + (SQUARE_LENGTH + SQUARE_PADDING) * (index + 1) + ')')
+            .attr('transform', 'translate(' + SQUARE_LENGTH + ',' + (SQUARE_LENGTH + SQUARE_PADDING) * (index + 1) + ')')
             .style('text-anchor', 'middle')
             .attr('dy', '2')
             .text(day);
@@ -191,7 +203,8 @@ function calendarHeatmap() {
     function tooltipHTMLForDate(d) {
       var dateStr = moment(d).format('ddd, MMM Do YYYY');
       var count = countForDate(d);
-      return '<span><strong>' + (count ? count : 'No') + tooltipUnit + (count === 1 ? '' : 's') + '</strong> on ' + dateStr + '</span>';
+      // return '<span><strong>' + (count ? count : 'No') + ' ' + tooltipUnit + (count === 1 ? '' : 's') + '</strong> on ' + dateStr + '</span>';
+      return '<span><strong>' + (count ? count : '0') + ' ' + tooltipUnit + '</strong> on ' + dateStr + '</span>';
     }
 
     function countForDate(d) {

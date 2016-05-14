@@ -3,6 +3,11 @@
     <meta charset="utf-8">
     <title>D3.js Calendar Heatmap</title>
     <link rel="stylesheet" type="text/css" href="../src/calendar-heatmap.css">
+    <style>
+    .calendar-heatmap {
+      box-sizing: initial;
+    }
+    </style>
   </head>
   <body>
     <div class="container"></div>
@@ -23,7 +28,11 @@
                       .data(chartData)
                       .selector('.container')
                       .tooltipEnabled(true)
-                      .colorRange(['#f4f7f7', '#79a8a9'])
+                      .legendEnabled(true)
+                      .tooltipUnit('counts')
+                      // .colorRange(['#f4f7f7', '#79a8a9'])
+                      // .colorRange(["rgb(237,237,237)", "rgb(0,104,55)", "rgb(99, 121, 57)", "rgb(59, 100, 39)"])
+                      .colorRange(["rgb(237,237,237)", "rgb(217,239,139)", "rgb(166,217,106)", "rgb(102,189,99)", "rgb(26,152,80)", "rgb(0,104,55)", "rgb(99, 121, 57)"])
                       .onClick(function (data) {
                         console.log('data', data);
                       });
